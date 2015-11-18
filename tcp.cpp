@@ -45,23 +45,46 @@ void tcp::update()
 		Log("A client has connected! ");
 		m_connected= true;
 	}
-	if (m_connected == true)
-	{
-		char data[101];
-		std::size_t received;
-		sf::Socket::Status stat = client.receive(data, 100, received);
-		data[received] = 0;
-		if (stat == sf::Socket::Disconnected)
-		{
-			Log("The client has disconnected.");
-			m_connected = false;
-		}
-		else
-		{
-			Log(data);
-		}
-	}
 }
 
+int16_t tcp::Read(uint8_t *buff, int16_t nbytes)
+{
+	if (m_connected == true)
+	{
+		std::size_t received;
+		sf::Socket::Status stat = client.receive(buff, nbytes, received);
+		return received;
+	}
+	return 0;
+}
+
+int16_t tcp::Read(uint8_t & d)
+{
+	uint8_t buff[1];
+	if (m_connected == true)
+	{
+		std::size_t received;
+		sf::Socket::Status stat = client.receive(buff, 1, received);
+		if (received)
+		{
+			d = buff[0];
+			return received;
+		}
+	}
+	return 0;
+}
+int16_t tcp::Write(uint8_t *buff, int16_t nbytes)
+{
+	// Write to socket
+	client.send(buff, nbytes);
+	return -1;
+}
+int16_t tcp::Write(uint8_t d)
+{
+	uint8_t buff[1];
+	buff[0] = d;
+	client.send(buff, 1);
+	return -1;
+}
 
 

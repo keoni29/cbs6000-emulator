@@ -8,15 +8,21 @@
 #ifndef TERMINAL_H_
 #define TERMINAL_H_
 #include <SFML/Graphics.hpp>
+#include "comDevice.h"
 
-class terminal : public sf::Drawable, public sf::Transformable
+class terminal : public sf::Drawable, public sf::Transformable, public comDevice
 {
 public:
 	terminal(int cols, int rows, int xoff, int yoff);
 	~terminal();
+
+	int16_t Read(uint8_t *buff, int16_t nbytes);
+	int16_t Read(uint8_t & d);
+	int16_t Write(uint8_t *buff, int16_t nbytes);
+	int16_t Write(uint8_t d);
+
 	bool load(const std::string& tileset, int w, int h);
 	void printChar(char c);
-	void printString(std::string s);
 	void enableCursor(bool enable);
 	void setTextColor(const sf::Color c);
 	void feedChar(char c);

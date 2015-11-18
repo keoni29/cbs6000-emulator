@@ -21,6 +21,79 @@ terminal::~terminal()
 	delete[] tiles;
 }
 
+int16_t terminal::Read(uint8_t &d)
+{
+	if (rxBuffer.size() == 0)
+	{
+		return 0;
+	}
+	d = rxBuffer.back();
+	rxBuffer.pop_back();
+	return 1;
+}
+
+int16_t terminal::Read(uint8_t *buff, int16_t nbytes)
+{
+	int i;
+	for(i = 0; i < nbytes; i++)
+	{
+		if (!Read(buff[i]))
+			break;
+	}
+	return i;	// Return amount of received characters.
+}
+
+int16_t terminal::Write(uint8_t d)
+{
+	/* Backspace character */
+	if (d == 0x8)
+	{
+		d = ' ';
+		if (m_cx)
+		{
+			m_cx --;
+		}
+		else
+		{
+			if (m_cy)
+			{
+				m_cx = m_cols - 1;
+				m_cy --;
+			}
+		}
+		setTile(m_cx, m_cy, (int)d);
+	}
+	else if (d == 0xD)
+	{
+		m_cx = 0;
+	}
+	else if (d == 0xA)
+	{
+		newLine();
+	}
+	else
+	{
+		tileColor(m_cx, m_cy, m_textColor);
+		setTile(m_cx, m_cy, (int)d);
+		if (++m_cx == m_cols)
+		{
+			newLine();
+		}
+	}
+
+	updateCursor();
+}
+
+int16_t terminal::Write(uint8_t *buff, int16_t nbytes)
+{
+	int i;
+	for(i = 0; i < nbytes; i ++)
+	{
+		if(!Write(buff[i]))
+			break;
+	}
+	return i;		// Return amount of characters that have been displayed
+}
 void terminal::feedChar(char c)
 {
 	rxBuffer.push_back(c);
@@ -73,69 +146,9 @@ void terminal::setCursorTile(int tileNumber)
 	quad[3].texCoords = sf::Vector2f(tu * m_tileHeight, (tv + 1) * m_tileHeight);
 }
 
-bool terminal::getChar(char& c)
-{
-	if (rxBuffer.size())
-	{
-		c = rxBuffer.back();
-		rxBuffer.pop_back();
-		return true;
-	}
-	return false;
-}
-
-void terminal::printChar(char c)
-{
-	/* Backspace character */
-	if (c == 0x8)
-	{
-		c = ' ';
-		if (m_cx)
-		{
-			m_cx --;
-		}
-		else
-		{
-			if (m_cy)
-			{
-				m_cx = m_cols - 1;
-				m_cy --;
-			}
-		}
-		setTile(m_cx, m_cy, (int)c);
-	}
-	else if (c == 0xD)
-	{
-		m_cx = 0;
-	}
-	else if (c == 0xA)
-	{
-		newLine();
-	}
-	else
-	{
-		tileColor(m_cx, m_cy, m_textColor);
-		setTile(m_cx, m_cy, (int)c);
-		if (++m_cx == m_cols)
-		{
-			newLine();
-		}
-	}
-
-	updateCursor();
-}
-
 void terminal::setTextColor(sf::Color c)
 {
 	m_textColor = c;
-}
-
-void terminal::printString(std::string s)
-{
-	for(unsigned int i = 0; i < s.length(); i++)
-	{
-		printChar(s.at(i));
-	}
 }
 
 void terminal::enableCursor(bool enable)

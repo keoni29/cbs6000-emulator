@@ -5,24 +5,29 @@
  * Version: -
  * Known bugs:	- Colors don't scroll then the text does.
  *
- * Todo: 		- Make base class for addressable devices.
- * 				- Create classes for ACIA1, ACIA2, ADC, CIA1, CIA2, ROM, RAM
+ * Todo: Make base class for addressable devices.
+ * Todo: Create classes for ACIA1, ACIA2, ADC, CIA1, CIA2, ROM, RAM
+ * Todo: Change comDevice to comInterface or comIface?
  */
 
 #include "mos6502.h"
 #include <iostream>
 #include "terminal.h"
 #include "tcp.h"
+#include "acia.h"
 #include <stdio.h>
 #include <unistd.h>
 
 #define versionInfo "CBS6000 emulator\r\nby Koen van Vliet\r\nFirst version\r\n"
 
-const int FPS = 60;		// Frames per second
-const int CPUSPEED = 1000000; // CPU clock frequency
-const int AIC = 3; // Average instruction clockcycles
+// Calculate amt of instructions per frame.
+// The emulator is not cycle-accurate, but this approximates
+// the execution time of the real hardware.
+const int FPS = 60;				// Frames per second
+const int CPUSPEED = 1000000; 	// CPU clock frequency
+const int AIC = 3; 				// Average instruction clockcycles
 const int IPS = CPUSPEED / AIC;	// Instructions per second
-const int IPF = IPS/FPS; // Instructions per frame
+const int IPF = IPS/FPS; 		// Instructions per frame
 
 // Memory devices
 #define RAMSTART	0x0000
@@ -51,8 +56,13 @@ const int IPF = IPS/FPS; // Instructions per frame
 uint8_t ram[RAMEND - RAMSTART + 1];
 uint8_t rom[ROMEND - ROMSTART + 1];
 
+void consoleLog(std::string s);
+
 terminal term(55,53,0,0);
 terminal dbgterm(25,53,55*8,0);
+tcp net(consoleLog);
+
+acia acia1(&term);
 
 #define WINDOW_WIDTH 80 * 8
 #define WINDOW_HEIGHT 53 * 8
@@ -72,24 +82,7 @@ uint8_t MemoryRead(uint16_t address)
 {
 	if (address >= IOSTART && address <= IOEND)
 	{
-		static char ch, cht;
-		switch (address)
-		{
-			case ACIA + ACIA_SR:
-				if (term.getChar(cht))
-				{
-					ch = cht;
-					return 0x3;
-				}
-				else
-				{
-					return 0x2;
-				}
-				break;
-			case ACIA + ACIA_DAT:
-				return ch;
-				break;
-		}
+		return acia1.Read(address);
 	}
 	if (address >= ROMSTART && address <= ROMEND)
 		return rom[address - ROMSTART];
@@ -101,12 +94,7 @@ uint8_t MemoryRead(uint16_t address)
 void MemoryWrite(uint16_t address, uint8_t value){
 	if (address >= IOSTART && address <= IOEND)
 	{
-		switch (address)
-		{
-			case ACIA + ACIA_DAT:
-				term.printChar((char)value);
-				break;
-		}
+		acia1.Write(address, value);
 	}
 	if (address >= RAMSTART && address <= RAMEND)
 		ram[address - RAMSTART] = value;
@@ -154,13 +142,11 @@ int main(int argc, char* argv[])
 	dbgterm.enableCursor(true);
 	dbgterm.setTextColor(sf::Color::Green);
 
-	dbgterm.printString("---- [Debug console] ----\r\n");
-	dbgterm.printString(versionInfo);
-	cpu.Reset();
-	dbgterm.printString("Starting emulation\r\n");
-
-	tcp net(consoleLog);
 	net.init();
+	//dbgterm.printString("---- [Debug console] ----\r\n");
+	//dbgterm.printString(versionInfo);
+	cpu.Reset();
+	//dbgterm.printString("Starting emulation\r\n");
 
 	while(window.isOpen())
 	{
@@ -169,7 +155,6 @@ int main(int argc, char* argv[])
 		{
 			switch (event.type) {
 				case sf::Event::Closed :
-					dbgterm.printString("Closing window\r\n");
 					window.close();
 					break;
 				case sf::Event::TextEntered:
