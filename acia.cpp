@@ -21,7 +21,7 @@ acia::acia(comDevice * com)
 acia::~acia()
 {}
 
-uint8_t acia::Read(uint16_t a)
+uint8_t acia::Read(uint16_t address)
 {
 	// Update register contents.
 	if (!(m_status & (1<<RDRF))) // Is the receive data register empty?
@@ -45,7 +45,7 @@ uint8_t acia::Read(uint16_t a)
 			// Something went wrong
 		}
 	}
-	if (a & 1)
+	if (address & 1)
 	{
 		// Clear data register full flag.
 		m_status &= ~(1<<RDRF);
@@ -57,15 +57,15 @@ uint8_t acia::Read(uint16_t a)
 	}
 }
 
-void acia::Write(uint16_t a, uint8_t d)
+void acia::Write(uint16_t address, uint8_t data)
 {
-	if (a & 1)
+	if (address & 1)
 	{
-		m_com->Write(d);
+		m_com->Write(data);
 	}
 	else
 	{
-		m_control = d;
+		m_control = data;
 		if((m_control & 0x3) == 0x3)
 		{
 			if(!m_isReset)

@@ -27,8 +27,8 @@ int16_t terminal::Read(uint8_t &d)
 	{
 		return 0;
 	}
-	d = rxBuffer.back();
-	rxBuffer.pop_back();
+	d = rxBuffer.front();
+	rxBuffer.erase(rxBuffer.begin());
 	return 1;
 }
 
@@ -82,6 +82,7 @@ int16_t terminal::Write(uint8_t d)
 	}
 
 	updateCursor();
+	return 1;
 }
 
 int16_t terminal::Write(uint8_t *buff, int16_t nbytes)
@@ -94,6 +95,15 @@ int16_t terminal::Write(uint8_t *buff, int16_t nbytes)
 	}
 	return i;		// Return amount of characters that have been displayed
 }
+
+void terminal::printString(const std::string& str)
+{
+	for(int i = 0; i < str.length(); i++)
+	{
+		Write(str.at(i));
+	}
+}
+
 void terminal::feedChar(char c)
 {
 	rxBuffer.push_back(c);
@@ -195,11 +205,19 @@ void terminal::scrollDown()
 		{
 			// get the current tile number
 			int tileNumber;
+			sf::Color col;
 			if (j == m_rows - 1)
+			{
 				tileNumber = ' ';
+				col = m_textColor;
+			}
 			else
-				tileNumber= tiles[i + (j + 1) * m_cols];
+			{
+				tileNumber= getTile(i, j + 1);
+				col = getColor(i, j+1);
+			}
 			setTile(i, j, tileNumber);
+			tileColor(i, j, col);
 		}
 	}
 }
@@ -229,7 +247,13 @@ void terminal::tileColor(int x, int y, sf::Color col)
 	quad[3].color = col;
 }
 
-int terminal::getTile(int x, int y)
+sf::Color terminal::getColor(int x, int y)
+{
+	sf::Vertex* quad = &m_vertices[(x + y * m_cols) * 4];
+	return quad[0].color;
+}
+
+int terminal::getTile(int x, int y) const
 {
 	return tiles[y * m_cols + x];
 }

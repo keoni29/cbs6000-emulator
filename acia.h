@@ -36,8 +36,8 @@ private:
 public:
 	acia(comDevice* m_term);
 	~acia();
-	uint8_t Read(uint16_t a);
-	void Write(uint16_t a, uint8_t d);
+	uint8_t Read(uint16_t address);
+	void Write(uint16_t address, uint8_t data);
 };
 
 #endif /* ACIA_H_ */

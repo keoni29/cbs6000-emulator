@@ -18,7 +18,7 @@ private:
 	sf::TcpSocket client;
 	bool m_connected;
 	// Console log callback function
-	typedef void (*ConsoleLog)(std::string s);
+	typedef void (*ConsoleLog)(const std::string &s);
 	ConsoleLog Log;
 public:
 	tcp(ConsoleLog l);

@@ -9,6 +9,7 @@
 #define TERMINAL_H_
 #include <SFML/Graphics.hpp>
 #include "comDevice.h"
+#include <stdarg.h>
 
 class terminal : public sf::Drawable, public sf::Transformable, public comDevice
 {
@@ -21,18 +22,18 @@ public:
 	int16_t Write(uint8_t *buff, int16_t nbytes);
 	int16_t Write(uint8_t d);
 
+	void printString(const std::string& str);
 	bool load(const std::string& tileset, int w, int h);
-	void printChar(char c);
 	void enableCursor(bool enable);
 	void setTextColor(const sf::Color c);
 	void feedChar(char c);
-	bool getChar(char& c);
 	void setCursorTile(int tileNumber);
 	void update();
 private:
 	virtual void draw(sf::RenderTarget& target, sf::RenderStates states) const;
 	void setTile(int x, int y, int tileNumber);
-	int getTile(int x, int y);
+	sf::Color getColor(int x, int y);
+	int getTile(int x, int y) const;
 	void newLine();
 	void tileColor(int x, int y, sf::Color col);
 	void updateCursor();
