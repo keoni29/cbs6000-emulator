@@ -1,6 +1,16 @@
 
 #include "mos6502.h"
-	
+
+void mos6502::GetState(uint16_t *buff)
+{
+	buff[Accumulator] = A;
+	buff[XIndex] = X;
+	buff[YIndex] = Y;
+	buff[ProgramCounter] = pc;
+	buff[StackPointer] = sp;
+	buff[Status] = status;
+}
+
 mos6502::mos6502(BusRead r, BusWrite w)
 {
 	Write = (BusWrite)w;

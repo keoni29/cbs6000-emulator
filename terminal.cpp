@@ -14,6 +14,8 @@ terminal::terminal(int cols, int rows, int xoff, int yoff) :  m_enableCursor(tru
 	m_cols = cols;
 	m_rows = rows;
 	tiles = new int[m_cols * m_rows];
+	for(int i = 0; i < m_cols * m_rows; i++)
+		tiles[i] = 0;
 };
 
 terminal::~terminal()
@@ -98,7 +100,7 @@ int16_t terminal::Write(uint8_t *buff, int16_t nbytes)
 
 void terminal::printString(const std::string& str)
 {
-	for(int i = 0; i < str.length(); i++)
+	for(uint16_t i = 0; i < str.length(); i++)
 	{
 		Write(str.at(i));
 	}

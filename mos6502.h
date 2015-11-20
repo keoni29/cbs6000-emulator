@@ -185,4 +185,14 @@ public:
 	void IRQ();
 	void Reset();
 	void Run(uint32_t n);
+	void GetState(uint16_t *buff);
+
+	enum CPURegisters{
+		Accumulator = 0,
+		XIndex = 1,
+		YIndex = 2,
+		ProgramCounter = 3,
+		StackPointer = 4,
+		Status = 5
+	};
 };
