@@ -43,14 +43,16 @@ const int AVG_INSTRUCTION_CYCLES = 3; 	// (Cycles it takes for an instruction to
 
 void consoleLog(const std::string &s);
 
-#define TERMWIDTH 60
-#define DBGWIDTH 40
 
 // Terminal emulators and networking stuff
-terminal term(TERMWIDTH,53,0,0);
-terminal dbgterm(DBGWIDTH,43,TERMWIDTH*8,0);
-terminal dasmterm(DBGWIDTH,9,TERMWIDTH*8,44 * 8);
 tcp net(consoleLog);
+terminal term(80,53,0,0);
+
+// Terminals for debug window
+terminal dbgterm(40,16,41 * 8,0);
+terminal dasmterm(40,9,0,7*8);
+terminal regterm(25,6,0,0);
+terminal zpterm(86,17,0,0);
 
 // Addressable devices
 acia acia1(&term);
@@ -58,8 +60,15 @@ acia acia2(&net);
 memory ram(65536, 2, false);
 memory rom(8192, 1, true);
 
-#define WINDOW_WIDTH (TERMWIDTH + DBGWIDTH) * 8
+// todo settle with optimal dimensions
+#define WINDOW_WIDTH 80 * 8
 #define WINDOW_HEIGHT 53 * 8
+
+#define DBGWINDOW_WIDTH 82 * 8
+#define DBGWINDOW_HEIGHT 16 * 8
+
+#define ZPWINDOW_WIDTH 86 * 8
+#define ZPWINDOW_HEIGHT 17 * 8
 
 // Built in IO
 #define DDR		0x0000
@@ -72,22 +81,10 @@ uint8_t PortOut;
 // The rest of the pins either use internal pullups or external ones.
 uint8_t PinDefault = ~((1<<ROMDIS) | (1<<RAML));
 
-/*
-void toHex(char* str, uint16_t value, uint8_t length)
-{
-	uint16_t prod = value;
-	char* lut = "0123456789ABCDEF";
-	for(uint8_t i = 0; i < length; i++)
-	{
-		str[length-i-1] = lut[prod % 16];
-		prod /= 16;
-	}
-	str[length] = 0;
-}*/
 
 uint8_t MemoryRead(uint16_t address)
 {
-	if (address == DDR)
+	/*if (address == DDR)
 	{
 		return Direction;
 	}
@@ -95,7 +92,7 @@ uint8_t MemoryRead(uint16_t address)
 	if (address == PORT)
 	{
 		return  (PortOut & Direction) | (~Direction & PinDefault);
-	}
+	}*/
 
 	if (address >= IOSTART && address <= IOEND)
 	{
@@ -132,17 +129,19 @@ uint8_t MemoryRead(uint16_t address)
 }
 
 void MemoryWrite(uint16_t address, uint8_t data){
-	if (address == DDR)
+	/*if (address == DDR)
 	{
+		// tODO FIX THIS
 		Direction = data;
 		return;
 	}
 
 	if (address == PORT)
 	{
+		// TODO FIX THIS
 		PortOut = data;
 		return;
-	}
+	}*/
 
 
 	if (address >= IOSTART && address <= IOEND)
@@ -192,7 +191,8 @@ int main(int argc, char* argv[])
 	int SPEED = 100; // %
 	int CPUFREQ = 1000000; // Hz - CPU clock frequency
 	bool HALT = false;
-	char str[50];
+	// Todo optimize this string buffer size?
+	char str[400];
 
 	if (argc < 2)
 	{
@@ -207,7 +207,11 @@ int main(int argc, char* argv[])
 
 	std::string caption("CBS6000 Emulator - (C)2015 Koen van Vliet");
 	sf::RenderWindow window(sf::VideoMode(WINDOW_WIDTH, WINDOW_HEIGHT), caption);
+	sf::RenderWindow dbgwindow(sf::VideoMode(DBGWINDOW_WIDTH, DBGWINDOW_HEIGHT), caption);
+	sf::RenderWindow zpwindow(sf::VideoMode(ZPWINDOW_WIDTH, ZPWINDOW_HEIGHT), caption);
 	window.setFramerateLimit(FPS);
+	dbgwindow.setFramerateLimit(FPS);
+	zpwindow.setFramerateLimit(FPS);
 
 	if (!term.load("terminal8x8_gs_ro.png",8,8))
 	{
@@ -227,6 +231,18 @@ int main(int argc, char* argv[])
 		return 0;
 	}
 
+	if (!regterm.load("terminal8x8_gs_ro.png",8,8))
+	{
+		std::cout << "Failed to open bitmap font file!" << std::endl;
+		return 0;
+	}
+
+	if (!zpterm.load("terminal8x8_gs_ro.png",8,8))
+	{
+		std::cout << "Failed to open bitmap font file!" << std::endl;
+		return 0;
+	}
+
 	int ctile = 177;
 	term.setCursorTile(ctile);
 	dbgterm.setCursorTile(ctile);
@@ -234,6 +250,10 @@ int main(int argc, char* argv[])
 	dbgterm.setTextColor(sf::Color::Green);
 	dasmterm.enableCursor(false);
 	dasmterm.setTextColor(sf::Color::Cyan);
+	regterm.enableCursor(false);
+	regterm.setTextColor(sf::Color::White);
+	zpterm.enableCursor(false);
+	zpterm.setTextColor(sf::Color::White);
 
 	consoleLog("---[Debug console]---");
 	consoleLog(versionInfo);
@@ -249,6 +269,11 @@ int main(int argc, char* argv[])
 
 	while(window.isOpen())
 	{
+		if (SPEED <= 20)
+		{
+			SHOWDASM = true;
+		}
+
 		sf::Event event;
 		while (window.pollEvent(event))
 		{
@@ -294,7 +319,7 @@ int main(int argc, char* argv[])
 					{
 						HALT = true;
 						SHOWDASM = true;
-						consoleLog("Stopped execution");
+						consoleLog("F8 to continue, F5 to step");
 					}
 
 					// Stop/Resume execution
@@ -303,13 +328,13 @@ int main(int argc, char* argv[])
 						if (HALT)
 						{
 							HALT = false;
-							consoleLog("Resumed execution");
+							consoleLog("Resumed execution...");
 						}
 						else
 						{
 							HALT = true;
 							SHOWDASM = true;
-							consoleLog("Stopped execution");
+							consoleLog("F8 to continue, F5 to step");
 						}
 					}
 					// Execute single instruction
@@ -319,18 +344,9 @@ int main(int argc, char* argv[])
 						{
 							cpu.Run(1);
 							SHOWDASM = true;
-							consoleLog("Executed one instruction");
 						}
 					}
 
-					if (event.key.code == sf::Keyboard::F1)
-					{
-						uint16_t state[6];
-						cpu.GetState(state);
-
-						sprintf(str,"A:%3d,X:%3d,Y:%3d\r\nPC:%5d,SP:%5d,SR:%3d",state[0], state[1], state[2], state[3], state[4], state[5]);
-						consoleLog(str);
-					}
 
 					if (event.key.code == sf::Keyboard::End)
 					{
@@ -338,7 +354,8 @@ int main(int argc, char* argv[])
 						Direction = 0x00;
 						PortOut = 0x00;
 						cpu.Reset();
-						consoleLog("--[Reset CPU]--");
+						HALT = false;
+						consoleLog("Reset CPU");
 					}
 
 					break;
@@ -356,6 +373,7 @@ int main(int argc, char* argv[])
 
 		if (SHOWDASM)
 		{
+			// Show live disassembly of the memory
 			SHOWDASM = false;
 			// Todo fix pc
 			uint16_t state[6];
@@ -378,18 +396,106 @@ int main(int argc, char* argv[])
 				dasmterm.printString(str);
 			}
 
+			// Display CPU register contents
+			char charA = state[0], charX = state[1], charY = state[2];
+
+			if (charA < ' ')
+			{
+				charA = ' ';
+			}
+			if (charX < ' ')
+			{
+				charX = ' ';
+			}
+			if (charY < ' ')
+			{
+				charY = ' ';
+			}
+
+			sprintf(str,"\r\n"
+						"A:  $%02X  %03d \'%c\'\r\n"
+						"X:  $%02X  %03d \'%c\'\r\n"
+						"Y:  $%02X  %03d \'%c\'\r\n"
+						"PC: $%04X\r\n"
+						"SP: $%02X  %03d\r\n"
+						"SR: $%02X, Z: %d, C: %d",
+						state[0],
+						state[0],
+						charA,
+						state[1],
+						state[1],
+						charX,
+						state[2],
+						state[2],
+						charY,
+						state[3],
+						state[4],
+						state[4],
+						state[5],
+						(state[5]>>1) & 1,
+						state[5] & 1);
+			regterm.printString(str);
+
+			// Show zero page contents
+			zpterm.setTextColor(sf::Color::Cyan);
+			zpterm.printString("\r\n----: -0, 1, 2, 3, 4, 5, 6, 7, 8, 9, A, B, C, D, E, F");
+			zpterm.setTextColor(sf::Color::White);
+			for(int i = 0; i < 16; i++)
+			{
+				uint8_t d;
+				zpterm.printString("\r\n");
+				sprintf(str, "%04X: ", (uint16_t)(i * 16));
+				zpterm.printString(str);
+				for(int j = 0; j < 16; j++)
+				{
+					d = MemoryRead(i*16 + j);
+					if (j == 15)
+						sprintf(str,"%02X",d);
+					else
+						sprintf(str,"%02X,",d);
+					if(i*16 + j >= 0x5C && i*16+j < 0x5C+ 0x27)
+						zpterm.setTextColor(sf::Color::Green);
+					zpterm.printString(str);
+					zpterm.setTextColor(sf::Color::White);
+				}
+				for(int j = 0; j < 16; j++)
+				{
+					d = MemoryRead(i*16 + j);
+					if (d < ' ')
+					{
+						d = ' ';
+					}
+					if(i*16 + j >= 0x5C && i*16+j < 0x5C+ 0x27)
+						zpterm.setTextColor(sf::Color::Green);
+					zpterm.Write(d);
+					zpterm.setTextColor(sf::Color::Blue);
+					zpterm.Write(ctile);
+					zpterm.setTextColor(sf::Color::White);
+				}
+			}
 		}
 
 		// Update the screen
 		window.clear();
+		dbgwindow.clear();
+		zpwindow.clear();
 		net.update();
 		term.update();
 		dbgterm.update();
 		dasmterm.update();
+		zpterm.update();
+		regterm.update();
 		window.draw(term);
-		window.draw(dbgterm);
-		window.draw(dasmterm);
+		dbgwindow.draw(dbgterm);
+		zpwindow.draw(zpterm);
+		//if(HALT)
+		//{
+			dbgwindow.draw(dasmterm);
+			dbgwindow.draw(regterm);
+		//}
 		window.display();
+		dbgwindow.display();
+		zpwindow.display();
 	}
 	return 0;
 }
