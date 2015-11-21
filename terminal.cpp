@@ -15,7 +15,7 @@ terminal::terminal(int cols, int rows, int xoff, int yoff) :  m_enableCursor(tru
 	m_rows = rows;
 	tiles = new int[m_cols * m_rows];
 	for(int i = 0; i < m_cols * m_rows; i++)
-		tiles[i] = 0;
+		tiles[i] = ' ';
 };
 
 terminal::~terminal()
@@ -150,12 +150,12 @@ void terminal::setCursorTile(int tileNumber)
 {
 	// get a pointer to the current tile's quad
 	sf::Vertex* quad = &m_cursor[0];
-	int tu = tileNumber % (m_tileset.getSize().x / m_tileHeight);
-	int tv = tileNumber / (m_tileset.getSize().x / m_tileHeight);
-	quad[0].texCoords = sf::Vector2f(tu * m_tileHeight, tv * m_tileHeight);
-	quad[1].texCoords = sf::Vector2f((tu + 1) * m_tileHeight, tv * m_tileHeight);
-	quad[2].texCoords = sf::Vector2f((tu + 1) * m_tileHeight, (tv + 1) * m_tileHeight);
-	quad[3].texCoords = sf::Vector2f(tu * m_tileHeight, (tv + 1) * m_tileHeight);
+	int tu = tileNumber % (m_tileset.getSize().x / m_tileWidth);
+	int tv = tileNumber / (m_tileset.getSize().x / m_tileWidth);
+	quad[0].texCoords = sf::Vector2f(tu * m_tileWidth, tv * m_tileHeight);
+	quad[1].texCoords = sf::Vector2f((tu + 1) * m_tileWidth, tv * m_tileHeight);
+	quad[2].texCoords = sf::Vector2f((tu + 1) * m_tileWidth, (tv + 1) * m_tileHeight);
+	quad[3].texCoords = sf::Vector2f(tu * m_tileWidth, (tv + 1) * m_tileHeight);
 }
 
 void terminal::setTextColor(sf::Color c)
@@ -179,10 +179,10 @@ void terminal::updateCursor()
 
 void terminal::moveTile(sf::Vertex* tile, int x, int y)
 {
-	tile[0].position = sf::Vector2f(x * m_tileHeight + m_xoff, y * m_tileHeight + m_yoff);
-	tile[1].position = sf::Vector2f((x + 1) * m_tileHeight + m_xoff, y * m_tileHeight + m_yoff);
-	tile[2].position = sf::Vector2f((x + 1) * m_tileHeight + m_xoff, (y + 1) * m_tileHeight + m_yoff);
-	tile[3].position = sf::Vector2f(x * m_tileHeight + m_xoff, (y + 1) * m_tileHeight + m_yoff);
+	tile[0].position = sf::Vector2f(x * m_tileWidth + m_xoff, y * m_tileHeight + m_yoff);
+	tile[1].position = sf::Vector2f((x + 1) * m_tileWidth + m_xoff, y * m_tileHeight + m_yoff);
+	tile[2].position = sf::Vector2f((x + 1) * m_tileWidth + m_xoff, (y + 1) * m_tileHeight + m_yoff);
+	tile[3].position = sf::Vector2f(x * m_tileWidth + m_xoff, (y + 1) * m_tileHeight + m_yoff);
 }
 
 void terminal::newLine()
@@ -227,15 +227,15 @@ void terminal::scrollDown()
 void terminal::setTile(int x, int y, int tileNumber)
 {
 	tiles[y * m_cols + x] = tileNumber;
-	int tu = tileNumber % (m_tileset.getSize().x / m_tileHeight);
-	int tv = tileNumber / (m_tileset.getSize().x / m_tileHeight);
+	int tu = tileNumber % (m_tileset.getSize().x / m_tileWidth);
+	int tv = tileNumber / (m_tileset.getSize().x / m_tileWidth);
 	// get a pointer to the current tile's quad
 	sf::Vertex* quad = &m_vertices[(x + y * m_cols) * 4];
 	// define its 4 texture coordinates
-	quad[0].texCoords = sf::Vector2f(tu * m_tileHeight, tv * m_tileHeight);
-	quad[1].texCoords = sf::Vector2f((tu + 1) * m_tileHeight, tv * m_tileHeight);
-	quad[2].texCoords = sf::Vector2f((tu + 1) * m_tileHeight, (tv + 1) * m_tileHeight);
-	quad[3].texCoords = sf::Vector2f(tu * m_tileHeight, (tv + 1) * m_tileHeight);
+	quad[0].texCoords = sf::Vector2f(tu * m_tileWidth, tv * m_tileHeight);
+	quad[1].texCoords = sf::Vector2f((tu + 1) * m_tileWidth, tv * m_tileHeight);
+	quad[2].texCoords = sf::Vector2f((tu + 1) * m_tileWidth, (tv + 1) * m_tileHeight);
+	quad[3].texCoords = sf::Vector2f(tu * m_tileWidth, (tv + 1) * m_tileHeight);
 }
 
 void terminal::tileColor(int x, int y, sf::Color col)

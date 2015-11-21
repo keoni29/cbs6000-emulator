@@ -46,13 +46,13 @@ void consoleLog(const std::string &s);
 
 // Terminal emulators and networking stuff
 tcp net(consoleLog);
-terminal term(80,53,0,0);
+terminal term(80,30,0,0);
 
 // Terminals for debug window
 terminal dbgterm(40,16,41 * 8,0);
 terminal dasmterm(40,9,0,7*8);
 terminal regterm(25,6,0,0);
-terminal zpterm(86,17,0,0);
+terminal zpterm(86,33,0,0);
 
 // Addressable devices
 acia acia1(&term);
@@ -62,13 +62,13 @@ memory rom(8192, 1, true);
 
 // todo settle with optimal dimensions
 #define WINDOW_WIDTH 80 * 8
-#define WINDOW_HEIGHT 53 * 8
+#define WINDOW_HEIGHT 30 * 16
 
 #define DBGWINDOW_WIDTH 82 * 8
-#define DBGWINDOW_HEIGHT 16 * 8
+#define DBGWINDOW_HEIGHT 16 * 16
 
 #define ZPWINDOW_WIDTH 86 * 8
-#define ZPWINDOW_HEIGHT 17 * 8
+#define ZPWINDOW_HEIGHT 33 * 16
 
 // Built in IO
 #define DDR		0x0000
@@ -84,7 +84,7 @@ uint8_t PinDefault = ~((1<<ROMDIS) | (1<<RAML));
 
 uint8_t MemoryRead(uint16_t address)
 {
-	/*if (address == DDR)
+	if (address == DDR)
 	{
 		return Direction;
 	}
@@ -92,7 +92,7 @@ uint8_t MemoryRead(uint16_t address)
 	if (address == PORT)
 	{
 		return  (PortOut & Direction) | (~Direction & PinDefault);
-	}*/
+	}
 
 	if (address >= IOSTART && address <= IOEND)
 	{
@@ -129,7 +129,7 @@ uint8_t MemoryRead(uint16_t address)
 }
 
 void MemoryWrite(uint16_t address, uint8_t data){
-	/*if (address == DDR)
+	if (address == DDR)
 	{
 		// tODO FIX THIS
 		Direction = data;
@@ -141,7 +141,7 @@ void MemoryWrite(uint16_t address, uint8_t data){
 		// TODO FIX THIS
 		PortOut = data;
 		return;
-	}*/
+	}
 
 
 	if (address >= IOSTART && address <= IOEND)
@@ -213,31 +213,31 @@ int main(int argc, char* argv[])
 	dbgwindow.setFramerateLimit(FPS);
 	zpwindow.setFramerateLimit(FPS);
 
-	if (!term.load("terminal8x8_gs_ro.png",8,8))
+	if (!term.load("terminal8x16.png",8,16))
 	{
 		std::cout << "Failed to open bitmap font file!" << std::endl;
 		return 0;
 	}
 
-	if (!dbgterm.load("terminal8x8_gs_ro.png",8,8))
+	if (!dbgterm.load("terminal8x16.png",8,16))
 	{
 		std::cout << "Failed to open bitmap font file!" << std::endl;
 		return 0;
 	}
 
-	if (!dasmterm.load("terminal8x8_gs_ro.png",8,8))
+	if (!dasmterm.load("terminal8x16.png",8,16))
 	{
 		std::cout << "Failed to open bitmap font file!" << std::endl;
 		return 0;
 	}
 
-	if (!regterm.load("terminal8x8_gs_ro.png",8,8))
+	if (!regterm.load("terminal8x16.png",8,16))
 	{
 		std::cout << "Failed to open bitmap font file!" << std::endl;
 		return 0;
 	}
 
-	if (!zpterm.load("terminal8x8_gs_ro.png",8,8))
+	if (!zpterm.load("terminal8x16.png",8,16))
 	{
 		std::cout << "Failed to open bitmap font file!" << std::endl;
 		return 0;
@@ -472,6 +472,10 @@ int main(int argc, char* argv[])
 					zpterm.Write(ctile);
 					zpterm.setTextColor(sf::Color::White);
 				}
+				zpterm.setTextColor(sf::Color::Blue);
+				for(int i = 0; i< 86; i++)
+					zpterm.Write(177);
+				zpterm.setTextColor(sf::Color::White);
 			}
 		}
 
